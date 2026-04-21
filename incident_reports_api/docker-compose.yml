@@ -1,0 +1,85 @@
+version: '3.8'
+ 
+ 
+services:
+ 
+  # MySQL 
+  mysql:
+    image: mysql:8.0
+    container_name: incident_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE:      ${DB_NAME:-incident_db}
+      MYSQL_USER:          ${DB_USER:-incident_user}
+      MYSQL_PASSWORD:      ${DB_PASSWORD:-incident_pass}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - incident_net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD:-root}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+ 
+  # Spring Boot API
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: incident_api
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      DB_HOST:       mysql
+      DB_PORT:       3306
+      DB_NAME:       ${DB_NAME:-incident_db}
+      DB_USER:       ${DB_USER:-incident_user}
+      DB_PASSWORD:   ${DB_PASSWORD:-incident_pass}
+      JWT_SECRET:    ${JWT_SECRET:-c2VjcmV0S2V5SW5jaWRlbnRSZXBvcnRBcGlKV1RTZWNyZXRLZXkyMDI0}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-86400000}
+    ports:
+      - "8080:8080"
+    networks:
+      - incident_net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+ 
+  #  phpMyAdmin 
+  phpmyadmin:
+    image: phpmyadmin:5.2
+    container_name: incident_phpmyadmin
+    restart: unless-stopped
+    depends_on:
+      - mysql
+    environment:
+      PMA_HOST:     mysql
+      PMA_PORT:     3306
+      PMA_USER:     root
+      PMA_PASSWORD: ${DB_ROOT_PASSWORD:-root}
+    ports:
+      - "8081:80"
+    networks:
+      - incident_net
+ 
+# Volumes 
+volumes:
+  mysql_data:
+    driver: local
+ 
+# Networks 
+networks:
+  incident_net:
+    driver: bridge

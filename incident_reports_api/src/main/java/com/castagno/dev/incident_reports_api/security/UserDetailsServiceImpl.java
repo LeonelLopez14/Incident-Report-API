@@ -10,13 +10,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Implementación de {@link UserDetailsService} que Spring Security usa
- * para cargar los datos del usuario durante la autenticación.
- *
- * El método loadUserByUsername se llama automáticamente en el proceso
- * de login y también en cada request cuando se valida el JWT.
- */
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -24,13 +18,6 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     private final UserRepository userRepository;
 
-    /**
-     * Busca el usuario por username o email.
-     * Permite hacer login con cualquiera de los dos.
-     *
-     * @param usernameOrEmail puede ser el username o el email del usuario
-     * @throws UsernameNotFoundException si no existe el usuario o está deshabilitado
-     */
     @Override
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String usernameOrEmail) throws UsernameNotFoundException {

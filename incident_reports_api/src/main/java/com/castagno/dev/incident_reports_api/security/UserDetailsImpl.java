@@ -11,6 +11,10 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 import java.util.List;
 
+/**
+    * Implementación personalizada de UserDetails para integrar la entidad User con Spring Security.
+     * Contiene los campos necesarios para la autenticación y autorización.
+ */
 @Getter
 @EqualsAndHashCode(of = "id")
 public class UserDetailsImpl implements UserDetails {
@@ -41,10 +45,13 @@ public class UserDetailsImpl implements UserDetails {
         this.authorities = authorities;
     }
 
-
+    /**
+     * Factory method: construye un UserDetailsImpl a partir de la entidad User.
+     * Mapea cada Role a un SimpleGrantedAuthority.
+     */
     public static UserDetailsImpl build(User user) {
         List<GrantedAuthority> authorities = user.getRoles().stream()
-                .map(role -> new SimpleGrantedAuthority(role.getName().name()))
+                .map(role -> (GrantedAuthority) new SimpleGrantedAuthority(role.getName().name()))
                 .toList();
 
         return new UserDetailsImpl(
@@ -57,7 +64,7 @@ public class UserDetailsImpl implements UserDetails {
         );
     }
 
-    //  UserDetails contract
+    // UserDetails contract
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

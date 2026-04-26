@@ -13,7 +13,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -23,7 +22,9 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
-
+/**
+ * Configuración central de Spring Security.
+ */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
@@ -34,14 +35,17 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final JwtAuthEntryPoint       jwtAuthEntryPoint;
     private final JwtAccessDeniedHandler  jwtAccessDeniedHandler;
+    private final PasswordEncoder         passwordEncoder;
 
-    // Filter Chain
+    // ── Filter Chain ──────────────────────────────────────────
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+                // Deshabilitar CSRF (API REST stateless no lo necesita)
                 .csrf(AbstractHttpConfigurer::disable)
 
+                // Configurar CORS
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
                 // Manejo de excepciones de seguridad
@@ -50,13 +54,14 @@ public class SecurityConfig {
                         .accessDeniedHandler(jwtAccessDeniedHandler)
                 )
 
+                // Sin sesión HTTP — cada request se autentica via JWT
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
 
                 // Reglas de autorización
                 .authorizeHttpRequests(auth -> auth
-
+                        // Endpoints públicos (login, register, swagger, actuator)
                         .requestMatchers(Constants.PUBLIC_ENDPOINTS).permitAll()
 
                         // Solo ADMIN puede gestionar usuarios
@@ -67,25 +72,28 @@ public class SecurityConfig {
                         // Reportes: ADMIN y ANALYST
                         .requestMatchers("/api/reports/**").hasAnyRole("ADMIN", "ANALYST")
 
+                        // Todo lo demás requiere autenticación
                         .anyRequest().authenticated()
                 )
 
+                // Registrar nuestro filtro JWT antes del filtro de autenticación estándar
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
-    // Authentication Provider
+    // ── Authentication Provider ───────────────────────────────
 
-
+    /**
+     * Configura el proveedor de autenticación y el PasswordEncoder BCrypt.
+     */
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
         provider.setUserDetailsService(userDetailsService);
-        provider.setPasswordEncoder(passwordEncoder());
+        provider.setPasswordEncoder(passwordEncoder);
         return provider;
     }
-
 
     @Bean
     public AuthenticationManager authenticationManager(
@@ -94,16 +102,12 @@ public class SecurityConfig {
         return authConfig.getAuthenticationManager();
     }
 
-    // Password Encoder
+    // ── CORS ──────────────────────────────────────────────────
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
-
-    // CORS
-
-
+    /**
+     * Configuración CORS para permitir requests desde el frontend.
+     * En producción se debe restringir allowedOrigins al dominio real.
+     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();

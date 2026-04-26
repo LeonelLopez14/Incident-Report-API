@@ -29,7 +29,10 @@ public final class Constants {
     public static final String MSG_USER_UPDATED      = "User updated successfully";
     public static final String MSG_USER_DELETED      = "User deleted successfully";
 
-    // Endpoints publicos
+    // API Base URL
+    public static final String API_BASE_URL = "http://localhost:8080";
+
+    //  Endpoints publicos
     public static final String[] PUBLIC_ENDPOINTS = {
             "/api/auth/**",
             "/swagger-ui/**",

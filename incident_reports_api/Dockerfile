@@ -26,7 +26,7 @@ WORKDIR /app
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 # Copiar solo el JAR generado
-COPY --from=builder /build/target/incident-report-api-*.jar app.jar
+COPY --from=builder /build/target/incident_reports_api-*.jar app.jar
 
 # Crear directorio para logs
 RUN mkdir -p /app/logs && chown -R appuser:appgroup /app
